@@ -5,9 +5,9 @@
     <title>Bitcoin Snake Game</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <!-- Mobile viewport -->
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; touch-action: none; }
         canvas { border: 2px solid #fff; background: #111; touch-action: none; } /* Prevent touch interference */
-        #startScreen, #gameOverScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: Arial, sans-serif; z-index: 10; transition: opacity 0.5s ease-in; }
+        #startScreen, #gameOverScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: Arial, sans-serif; z-index: 10; transition: opacity 0.5s ease-in; touch-action: none; }
         #startScreen h1, #gameOverScreen h1 { font-size: 48px; color: orange; }
         #startScreen p, #gameOverScreen p { font-size: 24px; }
         #startScreen span, #gameOverScreen span { font-size: 18px; margin-top: 20px; }
@@ -23,7 +23,7 @@
 <body>
     <div id="startScreen">
         <h1>Bitcoin.Snake</h1>
-        <p></p>
+        <p>made by B.W.</p>
         <span>Press any key or tap to start</span>
     </div>
     <div id="gameOverScreen">
@@ -41,12 +41,21 @@
         const finalScoreText = document.getElementById('finalScore');
 
         // Responsive canvas setup
-        let canvasSize = Math.min(window.innerWidth, window.innerHeight) * 0.9; // Fit to screen
-        canvas.width = canvasSize;
-        canvas.height = canvasSize;
-        const gridSize = canvasSize / 20; // Dynamic grid based on canvas size
+        function resizeCanvas() {
+            let canvasSize = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+            canvasSize = Math.floor(canvasSize / 20) * 20; // Ensure multiple of 20 for grid alignment
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+            gridSize = canvasSize / 20; // Integer grid size
+            // Reposition snake and food on resize
+            snake = [{ x: Math.floor(canvas.width / 2 / gridSize) * gridSize, y: Math.floor(canvas.height / 2 / gridSize) * gridSize }];
+            generateFood();
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
         // Game variables
+        let gridSize; // Set in resizeCanvas
         let snake = [{ x: canvas.width / 2, y: canvas.height / 2 }];
         let dx = gridSize;
         let dy = 0;
@@ -175,7 +184,7 @@
         const moon = {
             x: canvas.width / 2,
             y: canvas.height - 50 - 20, // Bottom center with padding (y=330 for 400px height)
-            radius: 125
+            radius: 50
         };
         let rocketAngle = Math.PI + Math.PI / 4; // Start from top left (approx 225 degrees)
 
@@ -272,7 +281,7 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw maze for subtle depth
-            //drawMaze();
+            drawMaze();
 
             // Draw moon
             drawMoon();
@@ -400,7 +409,7 @@
             // Self collision
             let collided = false;
             snake.forEach(segment => {
-                if (segment.x === head.x && segment.y === head.y) {
+                if (Math.abs(segment.x - head.x) < 1 && Math.abs(segment.y - head.y) < 1) { // Tolerance for precision
                     collided = true;
                 }
             });
@@ -411,8 +420,8 @@
 
             snake.unshift(head);
 
-            // Check for food collision
-            if (head.x === food.x && head.y === food.y) {
+            // Check for food collision with tolerance
+            if (Math.abs(head.x - food.x) < gridSize / 2 && Math.abs(head.y - food.y) < gridSize / 2) {
                 score++;
                 speed = Math.max(50, speed - 10); // Increase speed gradually
                 createFirework(food.x, food.y); // Firework on score
@@ -431,7 +440,7 @@
         }
 
         function resetGame() {
-            snake = [{ x: canvas.width / 2, y: canvas.height / 2 }];
+            snake = [{ x: Math.floor(canvas.width / 2 / gridSize) * gridSize, y: Math.floor(canvas.height / 2 / gridSize) * gridSize }];
             dx = gridSize;
             dy = 0;
             score = 0;
@@ -459,21 +468,10 @@
         let touchStartX = 0;
         let touchStartY = 0;
         canvas.addEventListener('touchstart', e => {
-            if (startScreen.style.display !== 'none') {
-                startScreen.style.display = 'none';
-                generateFood();
-                fetchBtcPrice();
-                priceInterval = setInterval(fetchBtcPrice, 10000);
-                update();
-                gameLoop = setInterval(update, speed);
-                return;
-            } else if (gameOverScreen.style.display !== 'none') {
-                resetGame();
-                return;
-            }
             const touch = e.touches[0];
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
+            e.preventDefault();
         });
 
         canvas.addEventListener('touchmove', e => {
@@ -481,7 +479,7 @@
                 const touch = e.touches[0];
                 const deltaX = touch.clientX - touchStartX;
                 const deltaY = touch.clientY - touchStartY;
-                const minSwipe = 50; // Minimum distance for swipe detection
+                const minSwipe = 30; // Adjusted for sensitivity
 
                 if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipe) {
                     // Horizontal swipe
@@ -494,6 +492,26 @@
                 }
                 e.preventDefault(); // Prevent scrolling/zoom
             }
+        });
+
+        // Tap to start/restart on screens (for mobile)
+        startScreen.addEventListener('touchstart', e => {
+            if (startScreen.style.display !== 'none') {
+                startScreen.style.display = 'none';
+                generateFood();
+                fetchBtcPrice();
+                priceInterval = setInterval(fetchBtcPrice, 10000);
+                update();
+                gameLoop = setInterval(update, speed);
+            }
+            e.preventDefault();
+        });
+
+        gameOverScreen.addEventListener('touchstart', e => {
+            if (gameOverScreen.style.display !== 'none') {
+                resetGame();
+            }
+            e.preventDefault();
         });
 
         // Keyboard controls for desktop (unchanged)
@@ -513,14 +531,6 @@
                 if (e.key === 'ArrowLeft' && dx === 0) { dx = -gridSize; dy = 0; }
                 if (e.key === 'ArrowRight' && dx === 0) { dx = gridSize; dy = 0; }
             }
-        });
-
-        // Handle resize/orientation change for responsiveness
-        window.addEventListener('resize', () => {
-            canvasSize = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-            canvas.width = canvasSize;
-            canvas.height = canvasSize;
-            // Re-center snake and food if needed (optional; current positions may shift slightly)
         });
 
         // Initial setup (draw background on title screen)
