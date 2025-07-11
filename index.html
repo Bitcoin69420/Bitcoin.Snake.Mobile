@@ -38,7 +38,7 @@
         // Dynamic canvas sizing for mobile/desktop (snap to grid multiples)
         const gridSize = 20;
         const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-        let logicalWidth = Math.floor(Math.min(400, maxSize) / gridSize) * gridSize; 
+        let logicalWidth = Math.floor(Math.min(400, maxSize) / gridSize) * gridSize;
         let logicalHeight = logicalWidth; // Square for simplicity
         const dpr = window.devicePixelRatio || 1;
         canvas.width = logicalWidth * dpr;
@@ -55,7 +55,7 @@
         let score = 0;
         let speed = 200; // Initial speed (higher = slower)
         let gameLoop;
-        const currencies = ['$'];
+        const currencies = ['$', '€',];
         let isPaused = false;
         let isMuted = false; // Sound mute toggle
 
@@ -126,6 +126,7 @@
             if (isMuted || audioCtx.state === 'suspended') return;
 
             audioCtx.resume().then(() => {
+                console.log('Intro sound triggered'); // Debug log to confirm
                 // Upbeat retro chiptune jingle (ascending notes)
                 const notes = [440, 523, 659, 784, 880]; // A major scale for positive feel
                 let time = audioCtx.currentTime;
@@ -144,7 +145,7 @@
                     oscillator.start(time);
                     oscillator.stop(time + 0.8);
 
-                    time += 0.8; // Spacing for 4-second total duration
+                    time += 0.8; // Spacing for ~4-second total duration
                 });
             }).catch(err => console.error('Intro sound error:', err));
         }
@@ -640,6 +641,7 @@
 
         function startGame() {
             startScreen.style.display = 'none';
+            playIntroSound(); // Play upbeat retro intro on start
             resetGame(); // Use resetGame to initialize properly
         }
 
@@ -647,9 +649,9 @@
         window.addEventListener('blur', () => { isPaused = true; });
         window.addEventListener('focus', () => { isPaused = false; });
 
-        // Initial setup (draw background on title screen and play intro sound)
+        // Initial setup (draw background on title screen)
         drawBackground();
-        playIntroSound(); // Play upbeat retro intro on load
     </script>
 </body>
 </html>
+
