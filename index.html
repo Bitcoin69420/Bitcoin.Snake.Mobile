@@ -89,9 +89,14 @@
             if (isMuted || audioCtx.state === 'suspended') return;
 
             audioCtx.resume().then(() => {
-                // Create "dun dun dun" with low tones (square wave for dramatic effect)
-                const notes = [200, 180, 160]; // Descending frequencies for "dun dun dun"
+                // Create more dramatic "dun dun dun" with low tones and reverb
+                const notes = [150, 130, 100]; // Deeper descending frequencies for drama
                 let time = audioCtx.currentTime;
+
+                // Reverb for echo effect
+                const convolver = audioCtx.createConvolver();
+                const reverbGain = audioCtx.createGain();
+                reverbGain.gain.value = 0.3; // Subtle reverb
 
                 notes.forEach((freq, index) => {
                     const oscillator = audioCtx.createOscillator();
@@ -99,17 +104,49 @@
                     oscillator.frequency.setValueAtTime(freq, time);
 
                     const gainNode = audioCtx.createGain();
-                    gainNode.gain.setValueAtTime(0.4, time); // Volume
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.3); // Quick fade
+                    gainNode.gain.setValueAtTime(0.6, time); // Slightly louder for drama
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.4); // Longer fade
+
+                    // Connect with reverb
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    gainNode.connect(convolver); // Add reverb path
+                    convolver.connect(reverbGain);
+                    reverbGain.connect(audioCtx.destination);
+
+                    oscillator.start(time);
+                    oscillator.stop(time + 0.4);
+
+                    time += 0.4; // Spacing for "dun... dun... DUN"
+                });
+            }).catch(err => console.error('Game over sound error:', err));
+        }
+
+        function playIntroSound() {
+            if (isMuted || audioCtx.state === 'suspended') return;
+
+            audioCtx.resume().then(() => {
+                // Upbeat retro chiptune jingle (ascending notes)
+                const notes = [440, 523, 659, 784, 880]; // A major scale for positive feel
+                let time = audioCtx.currentTime;
+
+                notes.forEach((freq, index) => {
+                    const oscillator = audioCtx.createOscillator();
+                    oscillator.type = 'square'; // Square for 8-bit retro sound
+                    oscillator.frequency.setValueAtTime(freq, time);
+
+                    const gainNode = audioCtx.createGain();
+                    gainNode.gain.setValueAtTime(0.5, time); // Volume
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.8); // Fade per note
 
                     oscillator.connect(gainNode);
                     gainNode.connect(audioCtx.destination);
                     oscillator.start(time);
-                    oscillator.stop(time + 0.3);
+                    oscillator.stop(time + 0.8);
 
-                    time += 0.3; // Spacing between "duns"
+                    time += 0.8; // Spacing for 4-second total duration
                 });
-            }).catch(err => console.error('Game over sound error:', err));
+            }).catch(err => console.error('Intro sound error:', err));
         }
 
         // Bitcoin price ticker
@@ -461,7 +498,7 @@
             gameOverScreen.classList.add('visible');
             gameOverScreen.style.display = 'flex';
             if (!isMuted) {
-                playGameOverSound(); // Play "dun dun dun" sound
+                playGameOverSound(); // Play dramatic "dun dun dun"
             }
         }
 
@@ -610,8 +647,9 @@
         window.addEventListener('blur', () => { isPaused = true; });
         window.addEventListener('focus', () => { isPaused = false; });
 
-        // Initial setup (draw background on title screen)
+        // Initial setup (draw background on title screen and play intro sound)
         drawBackground();
+        playIntroSound(); // Play upbeat retro intro on load
     </script>
 </body>
 </html>
