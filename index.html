@@ -35,20 +35,20 @@
         const gameOverScreen = document.getElementById('gameOverScreen');
         const finalScoreText = document.getElementById('finalScore');
 
-        // Dynamic canvas sizing for mobile/desktop
+        // Dynamic canvas sizing for mobile/desktop (snap to grid multiples)
+        const gridSize = 20;
         const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-        canvas.width = Math.min(400, maxSize);
-        canvas.height = Math.min(400, maxSize);
+        let logicalWidth = Math.floor(Math.min(400, maxSize) / gridSize) * gridSize;
+        let logicalHeight = logicalWidth; // Square for simplicity
         const dpr = window.devicePixelRatio || 1;
-        canvas.style.width = `${canvas.width}px`;
-        canvas.style.height = `${canvas.height}px`;
-        canvas.width *= dpr;
-        canvas.height *= dpr;
+        canvas.width = logicalWidth * dpr;
+        canvas.height = logicalHeight * dpr;
+        canvas.style.width = `${logicalWidth}px`;
+        canvas.style.height = `${logicalHeight}px`;
         ctx.scale(dpr, dpr);
 
         // Game variables
-        const gridSize = 20;
-        let snake = [{ x: canvas.width / dpr / 2 - gridSize / 2, y: canvas.height / dpr / 2 - gridSize / 2 }];
+        let snake = [];
         let dx = gridSize;
         let dy = 0;
         let food = { x: 0, y: 0 };
@@ -74,8 +74,8 @@
         const particles = [];
         for (let i = 0; i < 30; i++) {
             particles.push({
-                x: Math.random() * (canvas.width / dpr),
-                y: Math.random() * (canvas.height / dpr),
+                x: Math.random() * logicalWidth,
+                y: Math.random() * logicalHeight,
                 vx: (Math.random() - 0.5) * 1.5, // Slower speed
                 vy: (Math.random() - 0.5) * 1.5,
                 size: Math.random() * 3 + 1,
@@ -130,8 +130,8 @@
             ctx.lineWidth = 1;
 
             // Simple grid with fewer connections for modern look
-            for (let x = 0; x < canvas.width / dpr; x += gridSize * 4) { // Wider spacing
-                for (let y = 0; y < canvas.height / dpr; y += gridSize * 4) {
+            for (let x = 0; x < logicalWidth; x += gridSize * 4) { // Wider spacing
+                for (let y = 0; y < logicalHeight; y += gridSize * 4) {
                     // Horizontal lines
                     ctx.beginPath();
                     ctx.moveTo(x, y);
@@ -157,8 +157,8 @@
 
         // Moon and orbiting rocket
         const moon = {
-            x: (canvas.width / dpr) / 2,
-            y: (canvas.height / dpr) - 50 - 20, // Bottom center with padding
+            x: logicalWidth / 2,
+            y: logicalHeight - 50 - 20, // Bottom center with padding
             radius: 100 
         };
         let rocketAngle = Math.PI + Math.PI / 4; // Start from top left (approx 225 degrees)
@@ -248,15 +248,15 @@
         function generateFood() {
             let foodX, foodY;
             do {
-                foodX = Math.floor(Math.random() * ((canvas.width / dpr) / gridSize)) * gridSize;
-                foodY = Math.floor(Math.random() * ((canvas.height / dpr) / gridSize)) * gridSize;
+                foodX = Math.floor(Math.random() * (logicalWidth / gridSize)) * gridSize;
+                foodY = Math.floor(Math.random() * (logicalHeight / gridSize)) * gridSize;
             } while (snake.some(segment => segment.x === foodX && segment.y === foodY));
             food = { x: foodX, y: foodY };
         }
 
         function drawBackground() {
             ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+            ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
             // Draw maze for subtle depth (uncommented but subtle)
             drawMaze();
@@ -271,8 +271,8 @@
             particles.forEach(p => {
                 p.x += p.vx;
                 p.y += p.vy;
-                if (p.x < 0 || p.x > canvas.width / dpr) p.vx *= -1;
-                if (p.y < 0 || p.y > canvas.height / dpr) p.vy *= -1;
+                if (p.x < 0 || p.x > logicalWidth) p.vx *= -1;
+                if (p.y < 0 || p.y > logicalHeight) p.vy *= -1;
                 // Rare direction change
                 if (Math.random() < 0.005) {
                     p.vx = (Math.random() - 0.5) * 1.5;
@@ -358,23 +358,23 @@
         function drawScore() {
             ctx.fillStyle = 'white';
             ctx.font = '16px Arial';
-            ctx.fillText(`Score: ${score}`, (canvas.width / dpr) - 100, 20);
+            ctx.fillText(`Score: ${score}`, logicalWidth - 100, 20);
         }
 
         function drawBtcTicker() {
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
-            ctx.fillText(`BTC: $${btcPrice}`, 10, (canvas.height / dpr) - 10);
+            ctx.fillText(`BTC: $${btcPrice}`, 10, logicalHeight - 10);
         }
 
         function moveSnake() {
             let head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
             // Wrap around edges (pass through walls)
-            if (head.x >= (canvas.width / dpr)) head.x = 0;
-            if (head.x < 0) head.x = (canvas.width / dpr) - gridSize;
-            if (head.y >= (canvas.height / dpr)) head.y = 0;
-            if (head.y < 0) head.y = (canvas.height / dpr) - gridSize;
+            if (head.x >= logicalWidth) head.x = 0;
+            if (head.x < 0) head.x = logicalWidth - gridSize;
+            if (head.y >= logicalHeight) head.y = 0;
+            if (head.y < 0) head.y = logicalHeight - gridSize;
 
             // Self collision (check after wrap)
             let collided = snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y);
@@ -385,8 +385,9 @@
 
             snake.unshift(head);
 
-            // Check for food collision
-            if (head.x === food.x && head.y === food.y) {
+            // Check for food collision (with tiny tolerance for any floating-point issues)
+            if (Math.abs(head.x - food.x) < 1 && Math.abs(head.y - food.y) < 1) {
+                console.log('Food eaten! Head:', head, 'Food:', food); // Debug log (remove if not needed)
                 score++;
                 speed = Math.max(80, speed - 10); // Increase speed gradually, cap at 80ms
                 createFirework(food.x, food.y); // Firework on score
@@ -405,7 +406,10 @@
         }
 
         function resetGame() {
-            snake = [{ x: (canvas.width / dpr) / 2 - gridSize / 2, y: (canvas.height / dpr) / 2 - gridSize / 2 }];
+            // Snap starting position to grid
+            const startX = Math.floor(logicalWidth / 2 / gridSize) * gridSize;
+            const startY = Math.floor(logicalHeight / 2 / gridSize) * gridSize;
+            snake = [{ x: startX, y: startY }];
             dx = gridSize;
             dy = 0;
             score = 0;
@@ -500,11 +504,7 @@
 
         function startGame() {
             startScreen.style.display = 'none';
-            generateFood();
-            fetchBtcPrice(); // Initial fetch
-            priceInterval = setInterval(fetchBtcPrice, 10000);
-            update(); // Initial draw
-            gameLoop = setInterval(update, speed);
+            resetGame(); // Use resetGame to initialize properly
         }
 
         // Pause on window blur (for mobile battery save)
@@ -516,4 +516,3 @@
     </script>
 </body>
 </html>
-```
