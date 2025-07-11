@@ -57,6 +57,11 @@
         let gameLoop;
         const currencies = ['$', '€', '¥', '¥', 'Rp', 'د.إ', '₽'];
         let isPaused = false;
+        let isMuted = false; // Sound mute toggle
+
+        // Sound effects
+        const eatSound = new Audio('https://freesound.org/data/previews/402/402769_5121236-lq.mp3'); // Cool coin chime (replace if desired)
+        eatSound.volume = 0.5; // Default volume (0-1)
 
         // Bitcoin price ticker
         let btcPrice = 'Loading...';
@@ -259,7 +264,7 @@
             ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
             // Draw maze for subtle depth (uncommented but subtle)
-            //drawMaze();
+            drawMaze();
 
             // Draw moon
             drawMoon();
@@ -391,6 +396,10 @@
                 score++;
                 speed = Math.max(80, speed - 10); // Increase speed gradually, cap at 80ms
                 createFirework(food.x, food.y); // Firework on score
+                if (!isMuted) {
+                    eatSound.currentTime = 0; // Reset to start
+                    eatSound.play().catch(err => console.log('Sound play error:', err)); // Handle autoplay policies
+                }
                 generateFood();
             } else {
                 snake.pop(); // Remove tail unless food eaten
@@ -440,18 +449,25 @@
         let priceInterval;
         let touchStartX = 0;
         let touchStartY = 0;
+        let touchStartTime = 0;
 
-        // Keyboard controls (desktop)
+        // Keyboard controls (desktop) + mute toggle
         document.addEventListener('keydown', e => {
+            if (e.key.toLowerCase() === 'm') {
+                isMuted = !isMuted;
+                console.log('Sounds ' + (isMuted ? 'muted' : 'unmuted'));
+                return;
+            }
             handleInput(e.key);
         });
 
-        // Touch controls for in-game swipes (on canvas)
+        // Touch controls for in-game swipes (on canvas) + long-tap mute
         canvas.addEventListener('touchstart', e => {
             e.preventDefault();
             const touch = e.touches[0];
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
+            touchStartTime = Date.now();
         });
 
         canvas.addEventListener('touchmove', e => {
@@ -465,6 +481,13 @@
             const deltaY = touch.clientY - touchStartY;
             const absX = Math.abs(deltaX);
             const absY = Math.abs(deltaY);
+            const duration = Date.now() - touchStartTime;
+
+            if (duration > 500 && absX < 30 && absY < 30) { // Long tap (>0.5s) for mute
+                isMuted = !isMuted;
+                console.log('Sounds ' + (isMuted ? 'muted' : 'unmuted'));
+                return;
+            }
 
             if (absX < 30 && absY < 30) return; // Ignore short taps (handled by overlays)
 
