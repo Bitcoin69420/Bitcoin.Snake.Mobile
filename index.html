@@ -59,9 +59,10 @@
         let isPaused = false;
         let isMuted = false; // Sound mute toggle
 
-        // Sound effects
-        const eatSound = new Audio('https://freesound.org/data/previews/402/402769_5121236-lq.mp3'); // Cool coin chime (replace if desired)
-        eatSound.volume = 0.5; // Default volume (0-1)
+        // Sound effects (reliable public URL for coin chime - replace with local path if needed, e.g., './coin-sound.mp3')
+        const eatSound = new Audio('https://bigsoundbank.com/UPLOAD/mp3/0457.mp3'); // Cool coin collect sound
+        eatSound.volume = 0.7; // Slightly louder default (0-1)
+        eatSound.preload = 'auto'; // Preload for faster playback
 
         // Bitcoin price ticker
         let btcPrice = 'Loading...';
@@ -398,7 +399,7 @@
                 createFirework(food.x, food.y); // Firework on score
                 if (!isMuted) {
                     eatSound.currentTime = 0; // Reset to start
-                    eatSound.play().catch(err => console.log('Sound play error:', err)); // Handle autoplay policies
+                    eatSound.play().then(() => console.log('Sound played successfully')).catch(err => console.error('Sound play error:', err.message, err.name, err.code)); // Detailed logging
                 }
                 generateFood();
             } else {
@@ -433,6 +434,13 @@
             update(); // Initial draw
             gameLoop = setInterval(update, speed);
             isPaused = false;
+            // Unlock audio context with a silent play (helps with autoplay policies)
+            eatSound.volume = 0;
+            eatSound.play().then(() => {
+                eatSound.pause();
+                eatSound.volume = 0.7; // Reset to normal
+                console.log('Audio unlocked successfully');
+            }).catch(err => console.error('Audio unlock error:', err));
         }
 
         function update() {
