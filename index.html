@@ -59,13 +59,12 @@
         let isPaused = false;
         let isMuted = false; // Sound mute toggle
 
-        // Web Audio API setup for generated sound (upbeat, clingy coin jingle)
+        // Web Audio API setup for generated sounds
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playEatSound() {
             if (isMuted || audioCtx.state === 'suspended') return;
 
-            // Resume context if needed (for mobile autoplay)
             audioCtx.resume().then(() => {
                 // Create oscillator for clingy jingle (sine wave with ring)
                 const oscillator = audioCtx.createOscillator();
@@ -83,7 +82,34 @@
                 gainNode.connect(audioCtx.destination);
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.5); // Duration: 0.5s
-            }).catch(err => console.error('Audio play error:', err));
+            }).catch(err => console.error('Eat sound error:', err));
+        }
+
+        function playGameOverSound() {
+            if (isMuted || audioCtx.state === 'suspended') return;
+
+            audioCtx.resume().then(() => {
+                // Create "dun dun dun" with low tones (square wave for dramatic effect)
+                const notes = [200, 180, 160]; // Descending frequencies for "dun dun dun"
+                let time = audioCtx.currentTime;
+
+                notes.forEach((freq, index) => {
+                    const oscillator = audioCtx.createOscillator();
+                    oscillator.type = 'square'; // Square for retro dramatic sound
+                    oscillator.frequency.setValueAtTime(freq, time);
+
+                    const gainNode = audioCtx.createGain();
+                    gainNode.gain.setValueAtTime(0.4, time); // Volume
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.3); // Quick fade
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.start(time);
+                    oscillator.stop(time + 0.3);
+
+                    time += 0.3; // Spacing between "duns"
+                });
+            }).catch(err => console.error('Game over sound error:', err));
         }
 
         // Bitcoin price ticker
@@ -420,7 +446,7 @@
                 speed = Math.max(80, speed - 10); // Increase speed gradually, cap at 80ms
                 createFirework(food.x, food.y); // Firework on score
                 if (!isMuted) {
-                    playEatSound(); // Play generated sound
+                    playEatSound(); // Play eat sound
                 }
                 generateFood();
             } else {
@@ -434,6 +460,9 @@
             finalScoreText.textContent = `Score: ${score}`;
             gameOverScreen.classList.add('visible');
             gameOverScreen.style.display = 'flex';
+            if (!isMuted) {
+                playGameOverSound(); // Play "dun dun dun" sound
+            }
         }
 
         function resetGame() {
