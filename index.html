@@ -446,8 +446,9 @@
             handleInput(e.key);
         });
 
-        // Touch controls (mobile swipe)
+        // Touch controls for in-game swipes (on canvas)
         canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
             const touch = e.touches[0];
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
@@ -458,31 +459,51 @@
         });
 
         canvas.addEventListener('touchend', e => {
-            if (startScreen.style.display !== 'none') {
-                startGame();
-                return;
-            }
-            if (gameOverScreen.style.display !== 'none') {
-                resetGame();
-                return;
-            }
-
+            e.preventDefault();
             const touch = e.changedTouches[0];
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
             const absX = Math.abs(deltaX);
             const absY = Math.abs(deltaY);
 
-            if (absX > absY && absX > 30) {
+            if (absX < 30 && absY < 30) return; // Ignore short taps (handled by overlays)
+
+            if (absX > absY) {
                 // Horizontal swipe
                 if (deltaX > 0 && dx === 0) { dx = gridSize; dy = 0; } // Right
                 else if (deltaX < 0 && dx === 0) { dx = -gridSize; dy = 0; } // Left
-            } else if (absY > absX && absY > 30) {
+            } else {
                 // Vertical swipe
                 if (deltaY > 0 && dy === 0) { dx = 0; dy = gridSize; } // Down
                 else if (deltaY < 0 && dy === 0) { dx = 0; dy = -gridSize; } // Up
             }
         });
+
+        // Touch taps for start/restart (on overlays)
+        let screenTouchStartX = 0;
+        let screenTouchStartY = 0;
+
+        function addScreenTouchListeners(screen, action) {
+            screen.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                screenTouchStartX = touch.clientX;
+                screenTouchStartY = touch.clientY;
+            });
+
+            screen.addEventListener('touchend', e => {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                const deltaX = Math.abs(touch.clientX - screenTouchStartX);
+                const deltaY = Math.abs(touch.clientY - screenTouchStartY);
+                if (deltaX < 30 && deltaY < 30) { // Short tap
+                    action();
+                }
+            });
+        }
+
+        addScreenTouchListeners(startScreen, startGame);
+        addScreenTouchListeners(gameOverScreen, resetGame);
 
         // Unified input handler for key/tap start
         function handleInput(key) {
