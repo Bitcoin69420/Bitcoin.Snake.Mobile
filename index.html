@@ -59,10 +59,32 @@
         let isPaused = false;
         let isMuted = false; // Sound mute toggle
 
-        // Sound effects (reliable public URL for coin chime - replace with local path if needed, e.g., './coin-sound.mp3')
-        const eatSound = new Audio('https://bigsoundbank.com/UPLOAD/mp3/0457.mp3'); // Cool coin collect sound
-        eatSound.volume = 0.7; // Slightly louder default (0-1)
-        eatSound.preload = 'auto'; // Preload for faster playback
+        // Web Audio API setup for generated sound (upbeat, clingy coin jingle)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playEatSound() {
+            if (isMuted || audioCtx.state === 'suspended') return;
+
+            // Resume context if needed (for mobile autoplay)
+            audioCtx.resume().then(() => {
+                // Create oscillator for clingy jingle (sine wave with ring)
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); // High pitch for "cling"
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.3); // Slide down for uplift
+
+                // Gain for volume and fade
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); // Volume
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5); // Fade out
+
+                // Connect and play
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.5); // Duration: 0.5s
+            }).catch(err => console.error('Audio play error:', err));
+        }
 
         // Bitcoin price ticker
         let btcPrice = 'Loading...';
@@ -398,8 +420,7 @@
                 speed = Math.max(80, speed - 10); // Increase speed gradually, cap at 80ms
                 createFirework(food.x, food.y); // Firework on score
                 if (!isMuted) {
-                    eatSound.currentTime = 0; // Reset to start
-                    eatSound.play().then(() => console.log('Sound played successfully')).catch(err => console.error('Sound play error:', err.message, err.name, err.code)); // Detailed logging
+                    playEatSound(); // Play generated sound
                 }
                 generateFood();
             } else {
@@ -434,13 +455,8 @@
             update(); // Initial draw
             gameLoop = setInterval(update, speed);
             isPaused = false;
-            // Unlock audio context with a silent play (helps with autoplay policies)
-            eatSound.volume = 0;
-            eatSound.play().then(() => {
-                eatSound.pause();
-                eatSound.volume = 0.7; // Reset to normal
-                console.log('Audio unlocked successfully');
-            }).catch(err => console.error('Audio unlock error:', err));
+            // Resume audio context on reset (for mobile)
+            audioCtx.resume().catch(err => console.error('Audio context resume error:', err));
         }
 
         function update() {
@@ -476,6 +492,7 @@
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
             touchStartTime = Date.now();
+            audioCtx.resume(); // Resume on touch for mobile audio
         });
 
         canvas.addEventListener('touchmove', e => {
@@ -520,6 +537,7 @@
                 const touch = e.touches[0];
                 screenTouchStartX = touch.clientX;
                 screenTouchStartY = touch.clientY;
+                audioCtx.resume(); // Resume on touch for mobile audio
             });
 
             screen.addEventListener('touchend', e => {
