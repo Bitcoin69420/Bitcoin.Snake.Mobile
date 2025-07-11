@@ -38,7 +38,7 @@
         // Dynamic canvas sizing for mobile/desktop (snap to grid multiples)
         const gridSize = 20;
         const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-        let logicalWidth = Math.floor(Math.min(400, maxSize) / gridSize) * gridSize;
+        let logicalWidth = Math.floor(Math.min(400, maxSize) / gridSize) * gridSize; 
         let logicalHeight = logicalWidth; // Square for simplicity
         const dpr = window.devicePixelRatio || 1;
         canvas.width = logicalWidth * dpr;
@@ -55,7 +55,7 @@
         let score = 0;
         let speed = 200; // Initial speed (higher = slower)
         let gameLoop;
-        const currencies = ['$', '€', '¥', '¥', 'Rp', 'د.إ', '₽'];
+        const currencies = ['$'];
         let isPaused = false;
         let isMuted = false; // Sound mute toggle
 
@@ -350,7 +350,7 @@
             ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
             // Draw maze for subtle depth (uncommented but subtle)
-            //drawMaze();
+            drawMaze();
 
             // Draw moon
             drawMoon();
