@@ -23,7 +23,7 @@
 <body>
     <div id="startScreen">
         <h1>Bitcoin.Snake</h1>
-        <p>made by B.W.</p>
+        <p></p>
         <span>Press any key or tap to start</span>
     </div>
     <div id="gameOverScreen">
@@ -184,7 +184,7 @@
         const moon = {
             x: canvas.width / 2,
             y: canvas.height - 50 - 20, // Bottom center with padding (y=330 for 400px height)
-            radius: 50
+            radius: 125
         };
         let rocketAngle = Math.PI + Math.PI / 4; // Start from top left (approx 225 degrees)
 
@@ -281,7 +281,7 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw maze for subtle depth
-            drawMaze();
+            //drawMaze();
 
             // Draw moon
             drawMoon();
